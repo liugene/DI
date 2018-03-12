@@ -1,6 +1,6 @@
 <?php
 
-namespace linkphp\boot\di;
+namespace linkphp\di;
 
 class InstanceDefinition
 {
