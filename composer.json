@@ -1,0 +1,20 @@
+{
+  "name": "linkphp/di",
+  "type": "library",
+  "description": "php di",
+  "keywords": ["di","php di"],
+  "authors": [
+    {
+      "name": "liugene",
+      "email": "liujun2199@vip.qq.com"
+    }
+  ],
+  "require": {
+    "php": "^5.5 || ^7.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "linkphp\\di\\": "src"
+    }
+  }
+}
