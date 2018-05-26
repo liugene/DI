@@ -58,6 +58,7 @@ class Container
          * 初始化需要立即实例化的类
          */
         $this->initEagerDefinition($definition);
+        return $this;
     }
 
     /**
@@ -124,12 +125,25 @@ class Container
              * true
              * 执行循环依赖注入所需要的类
              */
-            $this->bind((new InstanceDefinition())
-                ->setAlias($alias->getName())
-                ->setIsEager(true)
-                ->setClassName($alias->getClass()->getName())
-                ->setIsSingleton(true)
-            );
+            if(!isset($this->definition_map[$alias->getName()])){
+                $this->bind((new InstanceDefinition())
+                    ->setAlias($alias->getName())
+                    ->setIsEager(true)
+                    ->setClassName($alias->getClass()->getName())
+                    ->setIsSingleton(true)
+                );
+            }
+            $instance = $this->build($alias->getName());
+        } elseif ($alias instanceof ReflectionClass) {
+            if(!isset($this->definition_map[$alias->getName()])){
+                $this->bind((new InstanceDefinition())
+                    ->setAlias($alias->getName())
+                    ->setIsEager(true)
+                    ->setClassName($alias->getName())
+                    ->setIsSingleton(true)
+                );
+
+            }
             $instance = $this->build($alias->getName());
         } else {
             /**
@@ -300,7 +314,7 @@ class Container
                  * 执行get方法取得实例
                  * 并注入
                  */
-                $realName[] = $this->get($parameter);
+                $realName[] = $this->get($dependentClass);
             }
         }
         /**
@@ -344,6 +358,7 @@ class Container
              * true
              * 循环遍历参数
              */
+            $realName = [];
             foreach($reflectorParam as $parameter){
                 /**
                  * 获取类名
@@ -354,10 +369,10 @@ class Container
                      * 执行get方法取得实例
                      * 并注入
                      */
-                    $realName[] = $this->get($parameter);
-                    return $reflectorFunc->invokeArgs($realName);
+                    $realName[] = $this->get($dependentClass);
                 }
             }
+            return $reflectorFunc->invokeArgs($realName);
         }
     }
 
