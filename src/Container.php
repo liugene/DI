@@ -2,7 +2,7 @@
 
 namespace linkphp\di;
 
-use linkphp\boot\Exception;
+use framework\Exception;
 
 use Closure;
 use ReflectionClass;
@@ -142,9 +142,9 @@ class Container
                     ->setClassName($alias->getName())
                     ->setIsSingleton(true)
                 );
-
             }
             $instance = $this->build($alias->getName());
+
         } else {
             /**
              * false
