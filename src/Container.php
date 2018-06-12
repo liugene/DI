@@ -8,6 +8,7 @@ use Closure;
 use ReflectionClass;
 use ReflectionParameter;
 use ReflectionFunction;
+use ReflectionMethod;
 
 class Container
 {
@@ -41,6 +42,7 @@ class Container
 
     /**
      * @param InstanceDefinition $definition
+     * @return $this
      */
     public function bind(InstanceDefinition $definition)
     {
@@ -59,6 +61,91 @@ class Container
          */
         $this->initEagerDefinition($definition);
         return $this;
+    }
+
+    /**
+     * 方法注入
+     * @param string|object $alias
+     * @param string $method
+     * @param array $param
+     * @return $this
+     */
+    public function injection($alias, $method, $param = [])
+    {
+        if(is_object($alias)){
+            $param = $this->injectionMethodGetParam($alias, $method);
+            $reflectionMethod = new ReflectionMethod($alias, $method);
+            /**
+             * 带参数执行并返回结果
+             */
+            return $reflectionMethod->invokeArgs($alias, $param);
+        }
+
+        if(is_string($alias)){
+            /**
+             * 断言是否为合法类名
+             */
+            $this->assertClassNameAvailable($alias);
+            $param = $this->injectionMethodGetParam($alias, $method);
+            $reflectionMethod = new ReflectionMethod($this->get($alias), $method);
+            /**
+             * 带参数执行并返回结果
+             */
+            return $reflectionMethod->invokeArgs($this->get($alias), $param);
+        }
+    }
+
+    /**
+     * 获取类方法注入参数
+     * @param string|object $alias
+     * @param string $method
+     * @return array
+     */
+    public function injectionMethodGetParam($alias, $method)
+    {
+        /**
+         * 反射获取类
+         */
+        $reflectorClass = new ReflectionClass($alias);
+        /**
+         * 获取调用方法
+         */
+        $reflectorClassMethod = $reflectorClass->getMethod($method);
+        /**
+         * 获取方法参数
+         */
+        $reflectorClassMethodParam = $reflectorClassMethod->getParameters();
+        /**
+         * 如果是类注入
+         */
+        return $this->injectionMethodParam($reflectorClassMethodParam);
+    }
+
+    /**
+     * 获取类方法参数
+     * @param string $params
+     * @return array
+     */
+    public function injectionMethodParam($params)
+    {
+        if(!empty($params)){
+            $realName = [];
+            foreach ($params as $param){
+                /**
+                 * 获取类名
+                 */
+                $dependentClass = $param->getClass();
+
+                if(!is_null($dependentClass)){
+                    /**
+                     * 执行get方法取得实例
+                     * 并注入
+                     */
+                    $realName[] = $this->get($dependentClass);
+                }
+            }
+            return $realName;
+        }
     }
 
     /**
@@ -99,15 +186,6 @@ class Container
          */
         $this->initEagerDefinition($definition);
     }
-
-//    public function get($alias)
-//    {
-//        $definition = $this->definition_map[$alias];
-//        if($definition->isInstance()){
-//            return $this->getByAlias($alias);
-//        }
-//        return $definition->getInstance();
-//    }
 
     /**
      * @param string $alias
