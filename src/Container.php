@@ -67,14 +67,20 @@ class Container
      * 方法注入
      * @param string|object $alias
      * @param string $method
-     * @param array $param
+     * @param array $values
      * @return $this
      */
-    public function injection($alias, $method, $param = [])
+    public function injection($alias, $method, $values = [])
     {
         if(is_object($alias)){
-            $param = $this->injectionMethodGetParam($alias, $method);
+            $param = $this->injectionMethodGetParam($alias, $method, $values);
             $reflectionMethod = new ReflectionMethod($alias, $method);
+            if(empty($param)){
+                /**
+                 * 返回结果
+                 */
+                return $reflectionMethod->invoke($alias);
+            }
             /**
              * 带参数执行并返回结果
              */
@@ -86,8 +92,14 @@ class Container
              * 断言是否为合法类名
              */
             $this->assertClassNameAvailable($alias);
-            $param = $this->injectionMethodGetParam($alias, $method);
+            $param = $this->injectionMethodGetParam($alias, $method, $values);
             $reflectionMethod = new ReflectionMethod($this->get($alias), $method);
+            if(empty($param)){
+                /**
+                 * 返回结果
+                 */
+                return $reflectionMethod->invoke($alias);
+            }
             /**
              * 带参数执行并返回结果
              */
@@ -99,9 +111,10 @@ class Container
      * 获取类方法注入参数
      * @param string|object $alias
      * @param string $method
+     * @param array $values
      * @return array
      */
-    public function injectionMethodGetParam($alias, $method)
+    public function injectionMethodGetParam($alias, $method, $values = [])
     {
         /**
          * 反射获取类
@@ -118,33 +131,37 @@ class Container
         /**
          * 如果是类注入
          */
-        return $this->injectionMethodParam($reflectorClassMethodParam);
+        return $this->injectionMethodParam($reflectorClassMethodParam, $values);
     }
 
     /**
      * 获取类方法参数
-     * @param string $params
+     * @param array $params
+     * @param array $values
      * @return array
      */
-    public function injectionMethodParam($params)
+    public function injectionMethodParam($params, $values)
     {
         if(!empty($params)){
-            $realName = [];
+            $methodParam = [];
             foreach ($params as $param){
                 /**
                  * 获取类名
                  */
                 $dependentClass = $param->getClass();
 
-                if(!is_null($dependentClass)){
+                if($dependentClass){
                     /**
                      * 执行get方法取得实例
                      * 并注入
                      */
-                    $realName[] = $this->get($dependentClass);
+                    $methodParam[] = $this->get($dependentClass);
+                } else {
+                    $this->assertParamValueAvailable($param->getName(), $values);
+                    $methodParam[] = $values[$param->getName()];
                 }
             }
-            return $realName;
+            return $methodParam;
         }
     }
 
@@ -488,6 +505,22 @@ class Container
              * 不合法抛出 异常
              */
             throw new Exception('类名未设置!');
+        }
+    }
+
+    /**
+     * 断言注入参数值是否存在
+     * @throws
+     * @param string $param
+     * @param array $value
+     */
+    private function assertParamValueAvailable($param, $value)
+    {
+        if(!isset($value[$param])){
+            /**
+             * 不合法抛出 异常
+             */
+            throw new Exception('被调用类注入参数缺失!');
         }
     }
 
